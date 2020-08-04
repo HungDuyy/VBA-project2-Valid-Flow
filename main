@@ -1,0 +1,1624 @@
+Function FolderCreate(ByVal path As String) As Boolean
+
+FolderCreate = True
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+If FolderExists(path) Then
+    Exit Function
+Else
+    On Error GoTo DeadInTheWater
+    fso.CreateFolder path ' could there be any error with this, like if the path is really screwed up?
+    Exit Function
+End If
+
+DeadInTheWater:
+    MsgBox "A folder could not be created for the following path: " & path & ". Check the path name and try again."
+    FolderCreate = False
+    Exit Function
+
+End Function
+Function FolderExists(ByVal path As String) As Boolean
+
+FolderExists = False
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+If fso.FolderExists(path) Then FolderExists = True
+
+End Function
+Function SelecFolder() As String
+    Dim intResult As Integer
+    Dim strPath As String
+    Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = False
+    'the dialog is displayed to the user
+    intResult = Application.FileDialog(msoFileDialogOpen).Show
+    'checks if user has cancled the dialog
+    If intResult <> 0 Then
+        'dispaly message box
+        strPath = Application.FileDialog( _
+        msoFileDialogOpen).SelectedItems(1)
+        SelecFolder = strPath
+    End If
+End Function
+Private Sub SDOMFC_Click()
+Dim sFolder As String
+Dim strPath As String
+Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = False
+    ' Open the select folder prompt
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        If .Show = -1 Then ' if OK is pressed
+            sFolder = .SelectedItems(1)
+        End If
+    End With
+    
+    If sFolder <> "" Then ' if a file was chosen
+        ' *********************
+        ' put your code in here
+        strPath = Application.FileDialog( _
+        msoFileDialogFolderPicker).SelectedItems(1)
+        TextBox3.Value = strPath
+        ' *********************
+    End If
+End Sub
+Private Sub Select_Input_Click()
+Dim sFolder As String
+Dim strPath As String
+Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = False
+    ' Open the select folder prompt
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        If .Show = -1 Then ' if OK is pressed
+            sFolder = .SelectedItems(1)
+        End If
+    End With
+    
+    If sFolder <> "" Then ' if a file was chosen
+        ' *********************
+        ' put your code in here
+        strPath = Application.FileDialog( _
+        msoFileDialogFolderPicker).SelectedItems(1)
+        TextBox1.Value = strPath
+        ' *********************
+    End If
+End Sub
+Private Sub Select_SEDGE_Click()
+Dim sFolder As String
+Dim strPath As String
+Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = False
+    ' Open the select folder prompt
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        If .Show = -1 Then ' if OK is pressed
+            sFolder = .SelectedItems(1)
+        End If
+    End With
+    
+    If sFolder <> "" Then ' if a file was chosen
+        ' *********************
+        ' put your code in here
+        strPath = Application.FileDialog( _
+        msoFileDialogFolderPicker).SelectedItems(1)
+        TextBox2.Value = strPath
+        ' *********************
+    End If
+End Sub
+Private Sub makeinput_Click()
+    Dim inputpath, homepath, outputpath, up_FC_name, FC_name, FC_name_rev, results, resultsAll, problem, temp, toolpath, pverpath, docmiscpath, tptdocmisc, fctype, program, winuser, documentpath As String
+    Dim wsh, folder, subfolders As Object, wb As Workbook
+    Dim MyFileSysObj As Object
+    Dim i As Variant
+    Dim PathZipProgram, NameUnZipFile, UnZipFolderName As String
+    Dim ShellStr As String
+    winuser = Environ("UserName")
+    If winuser = "lec2hc" Then
+        MsgBox "Chuong la con dy~, ok thi tiep tuc?", vbInformation
+    End If
+    documentpath = "C:\Users\" & winuser & "\Documents"
+    If FolderExists(documentpath) = True Then
+    Else
+        MkDir (documentpath)
+    End If
+
+    Set MyFileSysObj = CreateObject("scripting.filesystemobject")
+    Set wsh = VBA.CreateObject("WScript.Shell")
+    toolpath = Application.ActiveWorkbook.path
+    '====set PATH
+    'Dim objEnv As Object
+    'Set objEnv = CreateObject("WScript.Shell").Environment("User")
+    'objEnv.Item("PATH") = toolpath & "\data\bin"
+    '====
+    
+    results = ""
+    resultsAll = "Success for: " & vbCrLf
+    problem = ""
+    pverpath = ""
+    docmiscpath = ""
+    inputpath = TextBox3.Value
+    
+    If Len(inputpath) > 120 Then
+        MsgBox "Please choose SDOM FC folder path < 120 character, current path is " & Len(inputpath) & " characters", vbCritical
+        Exit Sub
+    End If
+    If FolderExists(inputpath) = True Then
+    Else
+        MsgBox "SDOM FC folder not found !", vbCritical
+       Exit Sub
+    End If
+    
+    If pavast2pver = True Then 'copy pavast to pver
+        If pavast_button = False Then
+            MsgBox "Please check button 'Modify Pavast' first", vbCritical
+            Exit Sub
+        End If
+            pverpath = TextBox4.Value
+            If pverpath = "" Then
+                MsgBox "Please choose Pver if check 'Copy pavast to P-VER [1]'", vbCritical
+                Exit Sub
+            End If
+            If Len(pverpath) > 120 Then
+                MsgBox "Please choose Pver path < 120 character, current path is " & Len(pverpath) & " characters", vbCritical
+                Exit Sub
+            End If
+            If FolderExists(pverpath) = True Then
+                pverpath = pverpath + "\SwSAPSA\"
+            Else
+                MsgBox "Pver Folder not found !", vbCritical
+            Exit Sub
+            End If
+    End If
+    
+    
+    If makeall = True Then
+
+        homepath = TextBox3.Value + "\"
+        
+        Set folder = MyFileSysObj.GetFolder(TextBox3.Value)
+        Set subfol = folder.subfolders
+        For Each subfolders In subfol
+            '==============================================================================================================================================
+            If InStrRev(subfolders, "_DATA") <> 0 Then
+                GoTo nnext
+            End If
+            If InStrRev(subfolders, ".cont") <> 0 Then
+                GoTo nnext
+            End If
+            If InStrRev(subfolders, ".eASEE") <> 0 Then
+                resultsAll = ""
+                GoTo endd
+            End If
+            If InStrRev(subfolders, "_doc") <> 0 Then
+                resultsAll = ""
+                GoTo endd
+            End If
+            If InStrRev(subfolders, "_mod") <> 0 Then
+                resultsAll = ""
+                GoTo endd
+            End If
+            If InStrRev(subfolders, "_src") <> 0 Then
+                resultsAll = ""
+                GoTo endd
+            End If
+            FC_name = ""
+            outputpath = ""
+            results = ""
+            inputpath = subfolders
+            FC_name = Right(inputpath, Len(inputpath) - InStrRev(inputpath, "\"))
+            up_FC_name = FC_name
+            FC_name_rev = FC_name
+            FC_name = LCase(FC_name)
+            
+            If InStrRev(FC_name, "wspsa") <> 0 Then
+                FC_name = Left(FC_name, InStrRev(FC_name, "wspsa") + 4)
+                up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "wSPSA") + 4)
+            ElseIf InStrRev(FC_name, "wslyr") <> 0 Then 'SwSAPSA_CSwSLyr
+                FC_name = Left(FC_name, InStrRev(FC_name, "wslyr") + 4)
+                up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "wSLyr") + 4)
+            ElseIf InStrRev(FC_name, "psa") <> 0 Then
+                FC_name = Left(FC_name, InStrRev(FC_name, "psa") + 2)
+                up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "PSA") + 2)
+            Else
+                'MsgBox "Can't run for FC " & FC_name, vbCritical
+                problem = problem & "  - Can't run for FC " & FC_name_rev & vbCrLf
+                GoTo nnext
+            End If
+            
+            fctype = Right(FC_name, Len(FC_name) - InStrRev(FC_name, "_"))
+            
+            If (fctype = "swspsa") Then
+                fctype = "simple"
+            ElseIf (fctype = "swslry") Then
+                fctype = "simple"
+            Else
+                fctype = "complex"
+            End If
+            
+            '===================================================
+                'Application.Wait (Now + TimeValue("0:00:1"))
+                outputpath = inputpath + "_DATA"
+                inputpath = inputpath + "\"
+            '===================================================
+                If FolderExists(outputpath) = False Then
+                    MyFileSysObj.CreateFolder (outputpath)
+                Else
+                    If Dir(outputpath + "\*.*") <> "" Then
+                        Kill outputpath + "\*.*"
+                    End If
+                End If
+                outputpath = outputpath + "\"
+                If FolderExists(outputpath + "modify_pavast") = False Then
+                     MyFileSysObj.CreateFolder (outputpath + "modify_pavast\")
+                Else
+                    If Dir(outputpath + "modify_pavast\*.*") <> "" Then
+                        Kill outputpath + "modify_pavast\*.*"
+                    End If
+                End If
+               
+                
+                    PathZipProgram = "C:\program files\7-Zip\"
+                    If Right(PathZipProgram, 1) <> "\" Then
+                        PathZipProgram = PathZipProgram & "\"
+                    End If
+                    'Check if this is the path where 7z is installed.
+                    If Dir(PathZipProgram & "7z.exe") = "" Then
+                        MsgBox "Can't find 7z.exe from 'C:\program files\7-Zip\' - Please check again", vbCritical
+                    Else
+                    
+                        NameUnZipFile = inputpath + "_src\_misc\" + FC_name + "_isolar.zip"
+                 
+                        UnZipFolderName = inputpath + "_src\_misc\"
+                        
+                        ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                             & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                             
+                        ShellAndWait ShellStr, vbNormalFocus
+                    End If
+                    Application.Wait (Now + TimeValue("0:00:1"))
+                    
+                    
+                    temp = Dir(inputpath + "_src\_misc\*.xls")
+                    If temp = "" Then
+                        results = results & "  - Missing: " + FC_name + ".xls" & vbCrLf
+                        docmiscpath = "0"
+                    Else
+                        MyFileSysObj.CopyFile inputpath + "_src\_misc\*.xls", outputpath, True
+                        temp = Dir(outputpath + "*.xls")
+                        docmiscpath = outputpath + temp
+                    End If
+                    
+                    temp = Dir(inputpath + "_src\*_pavast.xml")
+                    If temp = "" Then
+                        results = results & "  - Missing: " + FC_name + "_pavast.xml" & vbCrLf
+                    Else
+                       MyFileSysObj.CopyFile inputpath + "_src\*_pavast.xml", outputpath + "modify_pavast", True
+                    End If
+                    
+                    temp = Dir(inputpath + "_src\_misc\" + FC_name + "_isolar\*ascet.arxml")
+                    If temp = "" Then
+                        temp = Dir(inputpath + "_src\_misc\*ascet.arxml")
+                        If temp = "" Then
+                            results = results & "  - Missing: " + FC_name + "_swascet.arxml" & vbCrLf
+                        Else
+                           MyFileSysObj.CopyFile inputpath + "_src\_misc\*ascet.arxml", outputpath + "modify_pavast", True
+                        End If
+                    Else
+                        MyFileSysObj.CopyFile inputpath + "_src\_misc\" + FC_name + "_isolar\*ascet.arxml", outputpath + "modify_pavast", True
+                    End If
+                    
+                    '======================================================================================================
+                    If gentpt = True Then 'gen tpt file
+                            '==================================simple=================================================================
+                            If fctype = "simple" Then
+                                    temp = Dir(docmiscpath)
+                                    If temp <> "" Then
+                                        
+                                           '================
+                                           Change_mapping (outputpath)
+                                           tptdocmisc = outputpath + "*TPT_*.xls"
+                                           temp = Dir(tptdocmisc)
+                                           If temp <> "" Then
+                                           '================
+                                               MyFileSysObj.CopyFile tptdocmisc, toolpath & "\data\", True
+                                               'MyFileSysObj.CopyFile toolpath & "\data\*tpt_template.tpt", documentpath + "\", True
+                                               wsh.CurrentDirectory = toolpath & "\data\"
+                                               wsh.Run toolpath & "\data\GenerateTestCaseTPT_Console.exe", vbNormalFocus, True
+                                               temp = Dir(toolpath & "\data\*_Simple.tpt")
+                                               If temp <> "" Then
+                                                    MyFileSysObj.CopyFile toolpath & "\data\*_Simple.tpt", outputpath, True
+                                                    MyFileSysObj.CopyFile toolpath & "\data\*_GenTPT.log", outputpath, True
+                                                    MyFileSysObj.DeleteFile toolpath & "\data\*_Simple.tpt", True
+                                                    MyFileSysObj.DeleteFile toolpath & "\data\*_GenTPT.log", True
+                                                    wsh.CurrentDirectory = outputpath
+                                                    wsh.Run toolpath & "\data\TPT_remove_V1.0_Console.exe", vbNormalFocus, True
+                                                    wsh.CurrentDirectory = documentpath
+                                                End If
+                                                MyFileSysObj.DeleteFile toolpath & "\data\*.xls", True
+                                                MyFileSysObj.DeleteFile outputpath + "*TPT_*.xls", True
+                                            End If
+                                    End If
+                             End If
+                     '==========================================complex============================================================
+                            If fctype = "complex" Then
+                                If FolderExists(homepath + up_FC_name & ".cont") Then
+                                        PathZipProgram = "C:\program files\7-Zip\"
+                                        If Right(PathZipProgram, 1) <> "\" Then
+                                            PathZipProgram = PathZipProgram & "\"
+                                        End If
+                                    
+                                        If MyFileSysObj.FileExists(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto.zip") Then
+                                            NameUnZipFile = homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto.zip"
+                                            UnZipFolderName = homepath + up_FC_name & ".cont\"
+                                            ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                                                 & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                                    & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                                            ShellAndWait ShellStr, vbNormalFocus
+                                            temp = Dir(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto\*.tpt")
+                                            If temp <> "" Then
+                                                MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto\*.tpt", outputpath, True
+                                            Else
+                                                temp = Dir(homepath + up_FC_name & ".cont\*.tpt")
+                                                If temp <> "" Then
+                                                    MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\*.tpt", outputpath, True
+                                                End If
+                                            End If
+                                        
+                                         ElseIf MyFileSysObj.FileExists(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec.zip") Then
+                                    
+                                            NameUnZipFile = homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec.zip"
+                                            UnZipFolderName = homepath + up_FC_name & ".cont\"
+                                            ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                                                 & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                                    & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                                            ShellAndWait ShellStr, vbNormalFocus
+                                            temp = Dir(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec\*.tpt")
+                                            If temp <> "" Then
+                                                MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec\*.tpt", outputpath, True
+                                            Else
+                                                temp = Dir(homepath + up_FC_name & ".cont\*.tpt")
+                                                If temp <> "" Then
+                                                    MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\*.tpt", outputpath, True
+                                                End If
+                                            End If
+                                        End If
+                                End If
+                            End If
+                       End If
+                
+                If results <> "" Then
+                    problem = "Problem with FC: " & FC_name_rev & vbCrLf & results & vbCrLf '& "Please manual collect files and modify this FC later", vbInformation
+                Else
+                    'MyFileSysObj.CopyFile outputpath + "modify_pavast\*_pavast.xml", toolpath + "\data\", True
+                    'MyFileSysObj.CopyFile outputpath + "modify_pavast\*ascet.arxml", toolpath + "\data\", True
+                    'wsh.Run toolpath & "\data\ModifyPaVaSt_real32_Console.bat", vbNormalFocus, True
+                    'MyFileSysObj.CopyFile toolpath + "\data\*pavast_new.xml", outputpath + "modify_pavast", True
+                    'MyFileSysObj.DeleteFile toolpath & "\data\*xml", True
+                    If pavast_button = True Then
+                        'MyFileSysObj.CopyFile outputpath + "modify_pavast\*_pavast.xml", documentpath, True
+                        'MyFileSysObj.CopyFile outputpath + "modify_pavast\*ascet.arxml", documentpath, True
+                        program = toolpath & "\data\ModifyPaVaSt_real32_Console.exe"
+                        wsh.CurrentDirectory = outputpath + "modify_pavast\"
+                        wsh.Run program, vbNormalFocus, True
+                        'Application.Wait (Now + TimeValue("0:00:1"))
+                        'temp = Dir(documentpath & "\*pavast_new.xml")
+                        'If temp <> "" Then
+                            'MyFileSysObj.CopyFile documentpath & "\*pavast_new.xml", outputpath + "modify_pavast", True
+                        'End If
+                        'MyFileSysObj.DeleteFile documentpath & "\*xml", True
+                    End If
+                    
+                    If pverpath <> "" Then 'copy pavast to pver
+                            '+ up_FC_name + "\"================================================================================
+                            temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                            If temp = "" Then
+                            Else
+                                temp = Dir(pverpath + up_FC_name + "\*pavast_OLD.xml")
+                                If temp = "" Then
+                                    temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                                    temp = pverpath & up_FC_name + "\" + temp
+                                    Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast_OLD.xml"
+                                Else
+                                    MyFileSysObj.DeleteFile pverpath & up_FC_name & "\*pavast.xml", True
+                                    'temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                                    'temp = pverpath & up_FC_name + "\" + temp
+                                    'Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast_base.xml"
+                                End If
+                                'MyFileSysObj.DeleteFile pverpath & up_FC_name & "\*pavast.xml", True
+                                'MyFileSysObj.CopyFile outputpath + "modify_pavast\*pavast_new.xml", pverpath & up_FC_name & "\*" & LCase(up_FC_name) & "_pavast.xml", True
+                            End If
+                            
+                            MyFileSysObj.CopyFile outputpath + "modify_pavast\*pavast_new.xml", pverpath & up_FC_name + "\", True
+                            temp = Dir(pverpath & up_FC_name + "\*pavast_new.xml")
+                            temp = pverpath & up_FC_name + "\" + temp
+                            Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast.xml"
+
+                    End If
+                    
+                    resultsAll = resultsAll & "  - " & FC_name_rev & vbCrLf
+                End If
+                
+                
+            'End If
+                '==============================================================================================================================================
+nnext:
+            Next
+            If problem = "" Then
+                MsgBox resultsAll, vbInformation
+            Else
+                MsgBox resultsAll & "-------------------------------------------------------------------" & vbCrLf & problem & "Please manual collect files and modify this FCs later", vbInformation
+            End If
+endd:
+            If resultsAll = "" Then
+                MsgBox "Don't check button 'Do for all...' if do for only 1 FC"
+            End If
+    
+    Else '1 FC
+                FC_name = Right(inputpath, Len(inputpath) - InStrRev(inputpath, "\"))
+                FC_name_rev = FC_name
+                up_FC_name = FC_name
+                FC_name = LCase(FC_name)
+                If InStrRev(FC_name, "wspsa") <> 0 Then
+                    FC_name = Left(FC_name, InStrRev(FC_name, "wspsa") + 4)
+                    up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "wSPSA") + 4)
+                ElseIf InStrRev(FC_name, "wslyr") <> 0 Then 'SwSAPSA_CSwSLyr
+                    FC_name = Left(FC_name, InStrRev(FC_name, "wslyr") + 4)
+                    up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "wSLyr") + 4)
+                ElseIf InStrRev(FC_name, "psa") <> 0 Then
+                    FC_name = Left(FC_name, InStrRev(FC_name, "psa") + 2)
+                    up_FC_name = Left(up_FC_name, InStrRev(up_FC_name, "PSA") + 2)
+                Else
+                    MsgBox ("Not found FC name in SDOM FC path!"), vbCritical
+                    Exit Sub
+                End If
+                
+                    fctype = Right(FC_name, Len(FC_name) - InStrRev(FC_name, "_"))
+                    If (fctype = "swspsa") Then
+                        fctype = "simple"
+                    ElseIf (fctype = "swslry") Then
+                        fctype = "simple"
+                    Else
+                        fctype = "complex"
+                    End If
+                    
+                homepath = Left(inputpath, Len(inputpath) - Len(FC_name_rev))
+                
+                outputpath = inputpath + "_DATA"
+            '===================================================
+                If FolderExists(outputpath) = False Then
+                    MyFileSysObj.CreateFolder (outputpath)
+                Else
+                    If Dir(outputpath + "\*.*") <> "" Then
+                        Kill outputpath + "\*.*"
+                    End If
+                End If
+                outputpath = outputpath + "\"
+                If FolderExists(outputpath + "modify_pavast") = False Then
+                     MyFileSysObj.CreateFolder (outputpath + "modify_pavast\")
+                Else
+                    If Dir(outputpath + "modify_pavast\*.*") <> "" Then
+                        Kill outputpath + "modify_pavast\*.*"
+                    End If
+                End If
+                
+                inputpath = inputpath + "\"
+                Application.Wait (Now + TimeValue("0:00:1"))
+                
+                
+                    PathZipProgram = "C:\program files\7-Zip\"
+                    If Right(PathZipProgram, 1) <> "\" Then
+                        PathZipProgram = PathZipProgram & "\"
+                    End If
+                    'Check if this is the path where 7z is installed.
+                    If Dir(PathZipProgram & "7z.exe") = "" Then
+                        MsgBox "Can't find 7z.exe from 'C:\program files\7-Zip\' - Please check again", vbCritical
+                    Else
+                    
+                        NameUnZipFile = inputpath + "_src\_misc\" + FC_name + "_isolar.zip"
+                 
+                        UnZipFolderName = inputpath + "_src\_misc\"
+                        
+                        ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                             & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                             
+                        ShellAndWait ShellStr, vbNormalFocus
+                    End If
+                    Application.Wait (Now + TimeValue("0:00:1"))
+                    
+                    temp = Dir(inputpath + "_src\_misc\*.xls")
+                    If temp = "" Then
+                        results = results & "  - Missing: " + FC_name + ".xls" & vbCrLf
+                        docmiscpath = "0"
+                    Else
+                        MyFileSysObj.CopyFile inputpath + "_src\_misc\*.xls", outputpath, True
+                        temp = Dir(outputpath + "*.xls")
+                        docmiscpath = outputpath + temp
+                    End If
+                    
+                    temp = Dir(inputpath + "_src\*_pavast.xml")
+                    If temp = "" Then
+                        results = results & "  - Missing: " + FC_name + "_pavast.xml" & vbCrLf
+                    Else
+                       MyFileSysObj.CopyFile inputpath + "_src\*_pavast.xml", outputpath + "modify_pavast", True
+                    End If
+                    
+                    temp = Dir(inputpath + "_src\_misc\" + FC_name + "_isolar\*ascet.arxml")
+                    If temp = "" Then
+                        temp = Dir(inputpath + "_src\_misc\*ascet.arxml")
+                        If temp = "" Then
+                            results = results & "  - Missing: " + FC_name + "_swascet.arxml in isolar.zip" & vbCrLf
+                        Else
+                            MyFileSysObj.CopyFile inputpath + "_src\_misc\*ascet.arxml", outputpath + "modify_pavast", True
+                        End If
+                    Else
+                        MyFileSysObj.CopyFile inputpath + "_src\_misc\" + FC_name + "_isolar\*ascet.arxml", outputpath + "modify_pavast", True
+                    End If
+                    
+                '=======================
+                If gentpt = True Then
+                '======================= Simple
+                    If fctype = "simple" Then
+                        temp = Dir(docmiscpath)
+                        If temp <> "" Then
+                           'MyFileSysObj.CopyFile docmiscpath, toolpath + "\data\", True
+                           'wsh.Run toolpath & "\data\GenerateTestCaseTPT_Console.bat", vbNormalFocus, True
+
+                           'temp = Dir(toolpath + "\data\*_Simple.tpt")
+                           'If temp <> "" Then
+                                'MyFileSysObj.CopyFile toolpath + "\data\*_Simple.tpt", outputpath, True
+                                'MyFileSysObj.CopyFile toolpath + "\data\*_GenTPT.log", outputpath, True
+                                'MyFileSysObj.DeleteFile toolpath & "\data\*_Simple.tpt", True
+                                'MyFileSysObj.DeleteFile toolpath & "\data\*_GenTPT.log", True
+                            'End If
+                            'MyFileSysObj.DeleteFile toolpath & "\data\*.xls", True
+                                '================
+                                Change_mapping (outputpath)
+                                tptdocmisc = outputpath + "*TPT_*.xls"
+                                temp = Dir(tptdocmisc)
+                                If temp <> "" Then
+                                    '================
+                                    MyFileSysObj.CopyFile tptdocmisc, toolpath & "\data\", True
+                                    wsh.CurrentDirectory = toolpath & "\data\"
+                                    wsh.Run toolpath & "\data\GenerateTestCaseTPT_Console.exe", vbNormalFocus, True
+                                    temp = Dir(toolpath & "\data\*_Simple.tpt")
+                                    If temp <> "" Then
+                                         MyFileSysObj.CopyFile toolpath & "\data\*_Simple.tpt", outputpath, True
+                                         MyFileSysObj.CopyFile toolpath & "\data\*_GenTPT.log", outputpath, True
+                                         MyFileSysObj.DeleteFile toolpath & "\data\*_Simple.tpt", True
+                                         MyFileSysObj.DeleteFile toolpath & "\data\*_GenTPT.log", True
+                                         wsh.CurrentDirectory = outputpath
+                                         wsh.Run toolpath & "\data\TPT_remove_V1.0_Console.exe", vbNormalFocus, True
+                                         wsh.CurrentDirectory = documentpath
+                                     End If
+                                     MyFileSysObj.DeleteFile toolpath & "\data\*.xls", True
+                                     MyFileSysObj.DeleteFile outputpath + "\*TPT_*.xls", True
+                                End If
+                         End If
+                     End If
+                  '============================ complex
+                    If fctype = "complex" Then
+                        If FolderExists(homepath + up_FC_name & ".cont") Then
+                    
+                            PathZipProgram = "C:\program files\7-Zip\"
+                            If Right(PathZipProgram, 1) <> "\" Then
+                                PathZipProgram = PathZipProgram & "\"
+                            End If
+                            
+                            If MyFileSysObj.FileExists(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto.zip") Then
+                                NameUnZipFile = homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto.zip"
+                                UnZipFolderName = homepath + up_FC_name & ".cont\"
+                                ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                                         & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                            & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                                ShellAndWait ShellStr, vbNormalFocus
+                            
+                                temp = Dir(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto\*.tpt")
+                                If temp <> "" Then
+                                    MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec_tauto\*.tpt", outputpath, True
+                                Else
+                                    temp = Dir(homepath + up_FC_name & ".cont\*.tpt")
+                                    If temp <> "" Then
+                                        MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\*.tpt", outputpath, True
+                                    End If
+                                End If
+                                
+                            ElseIf MyFileSysObj.FileExists(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec.zip") Then
+                        
+                                NameUnZipFile = homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec.zip"
+                                UnZipFolderName = homepath + up_FC_name & ".cont\"
+                                ShellStr = PathZipProgram & "7z.exe x -aoa -r" _
+                                         & " " & Chr(34) & NameUnZipFile & Chr(34) _
+                                            & " -o" & Chr(34) & UnZipFolderName & Chr(34) & "" '& "*.*"
+                                ShellAndWait ShellStr, vbNormalFocus
+                            
+                                temp = Dir(homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec\*.tpt")
+                                If temp <> "" Then
+                                 MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\" + FC_name + "_urt_dt_spec\*.tpt", outputpath, True
+                                Else
+                                    temp = Dir(homepath + up_FC_name & ".cont\*.tpt")
+                                    If temp <> "" Then
+                                        MyFileSysObj.CopyFile homepath + up_FC_name & ".cont\*.tpt", outputpath, True
+                                    End If
+                                End If
+                            End If
+                        End If
+                    End If 'If fctype = "complex" Then
+                End If    '==
+                        
+                TextBox1.Value = Left(outputpath, Len(outputpath) - 1)
+               
+                If results <> "" Then
+                    MsgBox "Done, but: " & vbCrLf & vbCrLf & results & vbCrLf & "Please manual collect files and modify later", vbInformation
+                    Exit Sub
+                Else
+                    'MyFileSysObj.CopyFile outputpath + "modify_pavast\*_pavast.xml", toolpath + "\data\", True
+                    'MyFileSysObj.CopyFile outputpath + "modify_pavast\*ascet.arxml", toolpath + "\data\", True
+                    'wsh.Run toolpath & "\data\ModifyPaVaSt_real32_Console.bat", vbNormalFocus, True
+                    If pavast_button = True Then
+                        'MyFileSysObj.CopyFile outputpath + "modify_pavast\*_pavast.xml", documentpath, True
+                        'MyFileSysObj.CopyFile outputpath + "modify_pavast\*ascet.arxml", documentpath, True
+                        program = toolpath & "\data\ModifyPaVaSt_real32_Console.exe"
+                        wsh.CurrentDirectory = outputpath + "modify_pavast\"
+                        wsh.Run program, vbNormalFocus, True
+                        'Application.Wait (Now + TimeValue("0:00:1"))
+                        'temp = Dir(documentpath & "\*pavast_new.xml")
+                        'If temp <> "" Then
+                            'MyFileSysObj.CopyFile documentpath & "\*pavast_new.xml", outputpath + "modify_pavast", True
+                        'End If
+                        'MyFileSysObj.DeleteFile documentpath & "\*xml", True
+                    End If
+                    If pverpath <> "" Then 'copy pavast to pver
+                        '+ up_FC_name + "\"================================================================================
+                        
+                        temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                        If temp = "" Then
+                        Else
+                            temp = Dir(pverpath + up_FC_name + "\*pavast_OLD.xml")
+                            If temp = "" Then
+                                temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                                temp = pverpath & up_FC_name + "\" + temp
+                                Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast_OLD.xml"
+                            Else
+                                MyFileSysObj.DeleteFile pverpath & up_FC_name & "\*pavast.xml", True
+                                'temp = Dir(pverpath + up_FC_name + "\*pavast.xml")
+                                'temp = pverpath & up_FC_name + "\" + temp
+                                'Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast_base.xml"
+                            End If
+                            'MyFileSysObj.DeleteFile pverpath & up_FC_name & "\*pavast.xml", True
+                            'MyFileSysObj.CopyFile outputpath + "modify_pavast\*pavast_new.xml", pverpath & up_FC_name & "\*" & LCase(up_FC_name) & "_pavast.xml", True
+                        End If
+                        
+                        MyFileSysObj.CopyFile outputpath + "modify_pavast\*pavast_new.xml", pverpath & up_FC_name + "\", True
+                        temp = Dir(pverpath & up_FC_name + "\*pavast_new.xml")
+                        temp = pverpath & up_FC_name + "\" + temp
+                        Name temp As pverpath & up_FC_name + "\" + LCase(up_FC_name) + "_pavast.xml"
+                      End If
+                    End If
+            'End If
+                              
+            MsgBox "Done! Check " & FC_name_rev & "_DATA"
+        End If
+
+    ''===========================================================================
+    wsh.CurrentDirectory = documentpath
+End Sub
+
+Private Sub ARRANGE_Click()
+Dim fctype, sedgepath, tptpath, notepath, docmiscpath, pdfpath, namerevision, inputpath, datapath, outputpath, testspec, testdata, testreport, testsedge, fcname, sedgesourcepath As String
+Dim MyFileSysObj As Object
+
+Set MyFileSysObj = CreateObject("scripting.filesystemobject") 'CreateObject("Scripting.FileSystemObject")
+inputpath = TextBox1.Value
+sedgesourcepath = TextBox2.Value
+            If InStrRev(inputpath, "_DATA") <> 0 Then
+                outputpath = Left(inputpath, Len(inputpath) - 4) + "OUTPUT"
+            Else
+                outputpath = inputpath + "_OUTPUT"
+            End If
+If Len(inputpath) > 120 Then
+    MsgBox "Please choose DATA folder path < 120 character, current path is " & Len(inputpath) & " characters", vbCritical
+    Exit Sub
+End If
+If Len(sedgesourcepath) > 120 Then
+    MsgBox "Please choose SEDGE folder path < 120 character, current path is " & Len(sedgesourcepath) & " characters", vbCritical
+    Exit Sub
+End If
+If MyFileSysObj.FolderExists(inputpath) = True Then
+Else
+    MsgBox "INPUT folder not found !", vbCritical
+    Exit Sub
+End If
+
+If MyFileSysObj.FolderExists(sedgesourcepath) = True Then
+Else
+    MsgBox "SEDGE folder not found !", vbCritical
+    Exit Sub
+End If
+
+If MyFileSysObj.FolderExists(outputpath) = True Then
+    MyFileSysObj.DeleteFolder (outputpath)
+    While (MyFileSysObj.FolderExists(outputpath) = True)
+    Wend
+End If
+Application.Wait (Now + TimeValue("0:00:2"))
+
+MkDir (outputpath)
+
+'MyFileSysObj.createFolder (outputPath)
+
+datapath = sedgesourcepath + "\testdata"
+
+fcname = Right(sedgesourcepath, Len(sedgesourcepath) - InStrRev(sedgesourcepath, "\"))
+fcname = LCase(fcname)
+namerevision = fcname
+'fcname = Left(fcname, InStrRev(fcname, "wspsa") + 4)
+If InStrRev(fcname, "wspsa") <> 0 Then
+    fcname = Left(fcname, InStrRev(fcname, "wspsa") + 4)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "wSPSA") + 4)
+ElseIf InStrRev(fcname, "wslyr") <> 0 Then 'SwSAPSA_CSwSLyr
+    fcname = Left(fcname, InStrRev(fcname, "wslyr") + 4)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "wSLyr") + 4)
+'ElseIf InStrRev(fcname, "psa") <> 0 Then
+    'fcname = Left(fcname, InStrRev(fcname, "psa") + 2)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "PSA") + 2)
+Else
+    MsgBox ("Strange FC type in SEDGE source path - Tool can't cover this case!"), vbCritical
+    Exit Sub
+End If
+fctype = Right(fcname, Len(fcname) - InStrRev(fcname, "_"))
+'sFilename = Left(sFullFilename, (InStr(sFullFilename, ".") - 1))
+
+If (fctype = "swspsa") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec_tauto"
+ElseIf (fctype = "swslry") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec_tauto"
+Else 'If (fctype = "cswspsa") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec"
+'Else
+    'MsgBox ("Type of FC in SEDGE isn't available (not Complex or Simple), Please check again")
+    'Exit Sub
+End If
+    testdata = outputpath + "\" + fcname + "_urt_dt_data"
+    testreport = outputpath + "\" + fcname + "_urt_dt_report"
+    testsedge = outputpath + "\" + fcname + "_urt_dt_sedge"
+    MkDir (testspec)
+    MkDir (testdata)
+    MkDir (testreport)
+    MkDir (testsedge)
+    
+    Application.Wait (Now + TimeValue("0:00:1"))
+    '__________________data_____________________________________________________________________
+    MyFileSysObj.copyFolder datapath, (testdata + "\testdata"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+     '________________sedge_______________________________________________________________________
+
+    MyFileSysObj.copyFolder sedgesourcepath, (testsedge & "\" & fcname), True
+    Application.Wait (Now + TimeValue("0:00:2"))
+    sedgepath = testsedge + "\" + fcname
+    Name sedgepath As testsedge + "\" + namerevision
+     '______________spec_________________________________________________________________________
+    
+    MyFileSysObj.copyFolder (sedgesourcepath + "\_output"), (testspec + "\_output"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+
+    MyFileSysObj.CopyFile sedgesourcepath + "\*.tpt", testspec
+    
+    tptpath = Dir(testspec + "\*.tpt*")
+    
+    If (tptpath = "") Then
+        MsgBox "TPT file not found in SEDGE source path - Please Check", vbCritical
+        Exit Sub
+    End If
+    
+    tptpath = testspec + "\" + tptpath
+    
+    Name tptpath As testspec + "\" + namerevision + ".tpt"
+    
+    If (fctype = "swspsa") Then
+    tptpath = Dir(inputpath + "\*TPT.log")
+    
+    If tptpath = "" Then
+        MsgBox "Simple FC: Input folder not content TPT.log, please put the tpt.log file and try again", vbCritical
+        Exit Sub
+    Else
+         MyFileSysObj.CopyFile inputpath + "\*TPT.log", testspec
+         
+         tptpath = Dir(testspec + "\*TPT.log")
+    
+         tptpath = testspec + "\" + tptpath
+        
+        Name tptpath As testspec + "\" + namerevision + "_TPT.log"
+         
+    End If
+    
+    End If
+     '____________report___________________________________________________________________________
+    
+    MyFileSysObj.copyFolder (sedgesourcepath + "\testdata\FUSION_Platform"), (testreport + "\FUSION_Platform"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+    
+    docmiscpath = Dir(inputpath + "\*.xls*")
+        If (docmiscpath = "") Then
+        MsgBox "DOCMISC Traceability file not found in Input Folder - Please check and try again", vbCritical
+        Exit Sub
+        End If
+    MyFileSysObj.CopyFile inputpath + "\*.xls*", testreport
+    
+    docmiscpath = Dir(testreport + "\*.xls*")
+
+    docmiscpath = testreport + "\" + docmiscpath
+    
+    Name docmiscpath As testreport + "\" + namerevision + "_Traceability_matrix.xls"
+    
+    notepath = Dir(inputpath + "\*.txt")
+    If notepath = "" Then
+    Else
+        MyFileSysObj.CopyFile inputpath + "\*.txt*", testreport
+        notepath = testreport + "\" + notepath
+        Name notepath As testreport + "\" + namerevision + "_NOTE.txt"
+    End If
+    
+
+    
+    MyFileSysObj.CopyFile sedgesourcepath + "\testdata\*.pdf", testreport
+    
+    pdfpath = testreport + "\summary.pdf"
+
+    Name pdfpath As testreport + "\" + namerevision + ".pdf"
+     '_______________________________________________________________________________________
+    MsgBox "Done - Output folder : " + outputpath, vbInformation
+End Sub
+Private Sub arrange_zip_Click()
+
+Dim fctype, sedgepath, tptpath, notepath, docmiscpath, pdfpath, namerevision, inputpath, datapath, outputpath, testspec, testdata, testreport, testsedge, fcname, sedgesourcepath As String
+Dim MyFileSysObj As Object
+
+Set MyFileSysObj = CreateObject("scripting.filesystemobject") 'CreateObject("Scripting.FileSystemObject")
+inputpath = TextBox1.Value
+sedgesourcepath = TextBox2.Value
+            If InStrRev(inputpath, "_DATA") <> 0 Then
+                outputpath = Left(inputpath, Len(inputpath) - 4) + "OUTPUT"
+            Else
+                outputpath = inputpath + "_OUTPUT"
+            End If
+If Len(inputpath) > 120 Then
+    MsgBox "Please choose DATA folder path < 120 character, current path is " & Len(inputpath) & " characters", vbCritical
+    Exit Sub
+End If
+If Len(sedgesourcepath) > 120 Then
+    MsgBox "Please choose SEDGE folder path < 120 character, current path is " & Len(sedgesourcepath) & " characters", vbCritical
+    Exit Sub
+End If
+If MyFileSysObj.FolderExists(inputpath) = True Then
+Else
+    MsgBox "INPUT folder not found !", vbCritical
+    Exit Sub
+End If
+
+If MyFileSysObj.FolderExists(sedgesourcepath) = True Then
+Else
+    MsgBox "SEDGE folder not found !", vbCritical
+    Exit Sub
+End If
+
+If MyFileSysObj.FolderExists(outputpath) = True Then
+    MyFileSysObj.DeleteFolder (outputpath)
+    While (MyFileSysObj.FolderExists(outputpath) = True)
+    Wend
+End If
+Application.Wait (Now + TimeValue("0:00:2"))
+
+MkDir (outputpath)
+
+'MyFileSysObj.createFolder (outputPath)
+
+datapath = sedgesourcepath + "\testdata"
+
+fcname = Right(sedgesourcepath, Len(sedgesourcepath) - InStrRev(sedgesourcepath, "\"))
+fcname = LCase(fcname)
+namerevision = fcname
+'fcname = Left(fcname, InStrRev(fcname, "wspsa") + 4)
+If InStrRev(fcname, "wspsa") <> 0 Then
+    fcname = Left(fcname, InStrRev(fcname, "wspsa") + 4)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "wSPSA") + 4)
+ElseIf InStrRev(fcname, "wslyr") <> 0 Then 'SwSAPSA_CSwSLyr
+    fcname = Left(fcname, InStrRev(fcname, "wslyr") + 4)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "wSLyr") + 4)
+'ElseIf InStrRev(fcname, "psa") <> 0 Then
+    'fcname = Left(fcname, InStrRev(fcname, "psa") + 2)
+    'fcnameUpcase = Left(fcnameUpcase, InStrRev(fcnameUpcase, "PSA") + 2)
+Else
+    MsgBox ("Strange FC type in SEDGE source path - Tool can't cover this case!"), vbCritical
+    Exit Sub
+End If
+fctype = Right(fcname, Len(fcname) - InStrRev(fcname, "_"))
+'sFilename = Left(sFullFilename, (InStr(sFullFilename, ".") - 1))
+
+If (fctype = "swspsa") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec_tauto"
+ElseIf (fctype = "swslry") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec_tauto"
+Else 'If (fctype = "cswspsa") Then
+    testspec = outputpath + "\" + fcname + "_urt_dt_spec"
+'Else
+    'MsgBox ("Type of FC in SEDGE isn't available (not Complex or Simple), Please check again")
+    'Exit Sub
+End If
+    testdata = outputpath + "\" + fcname + "_urt_dt_data"
+    testreport = outputpath + "\" + fcname + "_urt_dt_report"
+    testsedge = outputpath + "\" + fcname + "_urt_dt_sedge"
+    MkDir (testspec)
+    MkDir (testdata)
+    MkDir (testreport)
+    MkDir (testsedge)
+    
+    Application.Wait (Now + TimeValue("0:00:1"))
+    '__________________data_____________________________________________________________________
+    MyFileSysObj.copyFolder datapath, (testdata + "\testdata"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+     '________________sedge_______________________________________________________________________
+
+    MyFileSysObj.copyFolder sedgesourcepath, (testsedge & "\" & fcname), True
+    Application.Wait (Now + TimeValue("0:00:2"))
+    sedgepath = testsedge + "\" + fcname
+    Name sedgepath As testsedge + "\" + namerevision
+     '______________spec_________________________________________________________________________
+    
+    MyFileSysObj.copyFolder (sedgesourcepath + "\_output"), (testspec + "\_output"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+
+    MyFileSysObj.CopyFile sedgesourcepath + "\*.tpt", testspec
+    
+    tptpath = Dir(testspec + "\*.tpt*")
+    
+    If (tptpath = "") Then
+        MsgBox "TPT file not found in SEDGE source path - Please Check", vbCritical
+        Exit Sub
+    End If
+    
+    tptpath = testspec + "\" + tptpath
+    
+    Name tptpath As testspec + "\" + namerevision + ".tpt"
+    
+    If (fctype = "swspsa") Then
+    tptpath = Dir(inputpath + "\*TPT.log")
+    
+    If tptpath = "" Then
+        MsgBox "Simple FC: Input folder not content TPT.log, please put the tpt.log file and try again", vbCritical
+        Exit Sub
+    Else
+         MyFileSysObj.CopyFile inputpath + "\*TPT.log", testspec
+         
+         tptpath = Dir(testspec + "\*TPT.log")
+    
+         tptpath = testspec + "\" + tptpath
+        
+        Name tptpath As testspec + "\" + namerevision + "_TPT.log"
+         
+    End If
+    
+    End If
+     '____________report___________________________________________________________________________
+    
+    MyFileSysObj.copyFolder (sedgesourcepath + "\testdata\FUSION_Platform"), (testreport + "\FUSION_Platform"), True
+    Application.Wait (Now + TimeValue("0:00:1"))
+    
+    docmiscpath = Dir(inputpath + "\*.xls*")
+        If (docmiscpath = "") Then
+        MsgBox "DOCMISC Traceability file not found in Input Folder - Please check and try again", vbCritical
+        Exit Sub
+        End If
+    MyFileSysObj.CopyFile inputpath + "\*.xls*", testreport
+    
+    docmiscpath = Dir(testreport + "\*.xls*")
+
+    docmiscpath = testreport + "\" + docmiscpath
+    
+    Name docmiscpath As testreport + "\" + namerevision + "_Traceability_matrix.xls"
+    
+    notepath = Dir(inputpath + "\*.txt")
+    If notepath = "" Then
+    Else
+        MyFileSysObj.CopyFile inputpath + "\*.txt*", testreport
+        notepath = testreport + "\" + notepath
+        Name notepath As testreport + "\" + namerevision + "_NOTE.txt"
+    End If
+    
+
+    
+    MyFileSysObj.CopyFile sedgesourcepath + "\testdata\*.pdf", testreport
+    
+    pdfpath = testreport + "\summary.pdf"
+
+    Name pdfpath As testreport + "\" + namerevision + ".pdf"
+
+'=======================================ZIP=====================================================================
+    Dim PathZipProgram As String, NameZipFile1, NameZipFile2, NameZipFile3, NameZipFile4, FolderName1, FolderName2, FolderName3, FolderName4 As String
+    Dim ShellStr As String
+    
+    'Path of the Zip program
+    PathZipProgram = "C:\program files\7-Zip\"
+    If Right(PathZipProgram, 1) <> "\" Then
+        PathZipProgram = PathZipProgram & "\"
+    End If
+
+    'Check if this is the path where 7z is installed.
+    If Dir(PathZipProgram & "7z.exe") = "" Then
+        MsgBox "Can't find 7z.exe from 'C:\program files\7-Zip\' - Please check again", vbCritical
+        Exit Sub
+    End If
+
+    
+        NameZipFile1 = testspec & ".zip"
+        NameZipFile2 = testdata & ".zip"
+        NameZipFile3 = testreport & ".zip"
+        NameZipFile4 = testsedge & ".zip"
+        
+        FolderName1 = testspec & "\"
+        FolderName2 = testdata & "\"
+        FolderName3 = testreport & "\"
+        FolderName4 = testsedge & "\"
+
+        
+        'Zip all the files in the folder and subfolders, -r is Include subfolders
+        ShellStr = PathZipProgram & "7z.exe a -r" _
+                 & " " & Chr(34) & NameZipFile1 & Chr(34) _
+                 & " " & Chr(34) & FolderName1 & "*.*" & Chr(34)
+                 
+        ShellAndWait ShellStr, vbNormalFocus
+        
+        ShellStr = PathZipProgram & "7z.exe a -r" _
+                 & " " & Chr(34) & NameZipFile2 & Chr(34) _
+                 & " " & Chr(34) & FolderName2 & "*.*" & Chr(34)
+                 
+        ShellAndWait ShellStr, vbNormalFocus
+        
+        ShellStr = PathZipProgram & "7z.exe a -r" _
+                 & " " & Chr(34) & NameZipFile3 & Chr(34) _
+                 & " " & Chr(34) & FolderName3 & "*.*" & Chr(34)
+                 
+        ShellAndWait ShellStr, vbNormalFocus
+        
+        ShellStr = PathZipProgram & "7z.exe a -r" _
+                 & " " & Chr(34) & NameZipFile4 & Chr(34) _
+                 & " " & Chr(34) & FolderName4 & "*.*" & Chr(34)
+                 
+        ShellAndWait ShellStr, vbNormalFocus
+        
+        MyFileSysObj.DeleteFolder (testspec)
+        While (MyFileSysObj.FolderExists(testspec) = True)
+        Wend
+        
+        MyFileSysObj.DeleteFolder (testdata)
+        While (MyFileSysObj.FolderExists(testdata) = True)
+        Wend
+        
+        MyFileSysObj.DeleteFolder (testreport)
+        While (MyFileSysObj.FolderExists(testreport) = True)
+        Wend
+                MyFileSysObj.DeleteFolder (testsedge)
+        While (MyFileSysObj.FolderExists(testsedge) = True)
+        Wend
+        
+        MsgBox "Done - Output folder : " + outputpath, vbInformation
+        
+End Sub
+Function check_in_tpt(in_put As String, out_put As String, ByVal tpt As String, docmiscwk As Excel.Workbook, ByVal i As Integer)
+
+    strFileName = tpt
+    strSearch = "<ts_doc description=""" & out_put & """/>"
+    strSearch_in = "<ts_setchannel channel=""" & in_put & """"
+    
+    Dim strLine As String
+    Dim f As Integer
+    Dim lngLine As Long
+    Dim blnFound As Boolean
+    Dim vData As Variant
+    Dim lCurLine As Long
+    
+    f = FreeFile
+    lCurLine = 1
+    bala = False
+    Open strFileName For Input As #f
+    Do While Not EOF(f)
+        lngLine = lngLine + 1
+        Line Input #f, strLine
+        If strLine Like "*" & vbLf & "*" Then
+            vData = Split(strLine, vbLf)
+        End If
+        
+        If IsEmpty(vData) Then
+            If bala2 = True Then
+                bala2 = True
+                docmiscwk.Sheets("Mapping").Range("AT" & i) = strLine
+                Exit Do
+            End If
+            If bala = True Then
+                bala2 = True
+            End If
+            
+            If InStr(1, strLine, strSearch, vbBinaryCompare) > 0 Then
+                    bala = True
+                    docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT " & lCurLine
+                    docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+                    docmiscwk.Sheets("Mapping").Range("AS" & i) = strLine
+                    'docmiscwk.Sheets("Mapping").Range("AT" & i) = strLine
+                    blnFound = True
+                    'Exit Do
+            End If
+            lCurLine = lCurLine + 1
+            
+        Else
+        If UBound(vData) > 0 Then
+            For j = 0 To UBound(vData)
+                If InStr(1, vData(j), strSearch, vbBinaryCompare) > 0 Then
+                    blnFound = True
+                    Line = j
+                    Exit Do
+                End If
+            Next j
+            lCurLine = lCurLine + UBound(vData)
+        Else
+
+            
+        End If
+        End If
+    Loop
+    Close #f
+    
+    If IsEmpty(vData) Then
+    
+    Else
+    
+    If InStr(1, vData(Line + 1), strSearch_in, vbBinaryCompare) > 0 Then
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT "
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+        docmiscwk.Sheets("Mapping").Range("AS" & i) = vData(Line)
+        docmiscwk.Sheets("Mapping").Range("AT" & i) = vData(Line + 2)
+    End If
+    
+    If Not blnFound Then
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "NOT EXIST IN TPT"
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 3
+    End If
+    
+    End If
+
+End Function
+Function check_in_tpt_C(in_put As String, out_put As String, ByVal tpt As String, docmiscwk As Excel.Workbook, ByVal i As Integer)
+    
+    strFileName = tpt
+    strSearch = "<ts_doc description=""" & out_put & """/>"
+    strSearch_in = "<ts_setparam channel=""" & in_put & """"
+    
+    Dim strLine As String
+    Dim f As Integer
+    Dim lngLine As Long
+    Dim blnFound As Boolean
+    Dim vData As Variant
+    Dim lCurLine As Long
+    
+    f = FreeFile
+    lCurLine = 1
+    bala = False
+    Open strFileName For Input As #f
+    Do While Not EOF(f)
+        lngLine = lngLine + 1
+        Line Input #f, strLine
+        
+        If strLine Like "*" & vbLf & "*" Then
+            vData = Split(strLine, vbLf)
+        End If
+        
+        If IsEmpty(vData) Then
+            If bala2 = True Then
+                bala2 = True
+                docmiscwk.Sheets("Mapping").Range("AT" & i) = strLine
+                Exit Do
+            End If
+            If bala = True Then
+                bala2 = True
+            End If
+            
+            If InStr(1, strLine, strSearch, vbBinaryCompare) > 0 Then
+                    bala = True
+                    docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT " & lCurLine
+                    docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+                    docmiscwk.Sheets("Mapping").Range("AS" & i) = strLine
+                    blnFound = True
+            End If
+            lCurLine = lCurLine + 1
+            
+        Else
+        
+        If UBound(vData) > 0 Then
+            For j = 0 To UBound(vData)
+                If InStr(1, vData(j), strSearch, vbBinaryCompare) > 0 Then
+    
+                    blnFound = True
+                    Line = j
+        
+                    Exit Do
+                End If
+            Next j
+            lCurLine = lCurLine + UBound(vData)
+        Else
+        ' in special case
+        End If
+        End If
+    Loop
+    Close #f
+    
+    If IsEmpty(vData) Then
+    
+    Else
+    
+        If InStr(1, vData(Line + 1), strSearch_in, vbBinaryCompare) > 0 Then
+    
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT "
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+        docmiscwk.Sheets("Mapping").Range("AS" & i) = vData(Line)
+        docmiscwk.Sheets("Mapping").Range("AT" & i) = vData(Line + 2)
+                    
+    End If
+     
+    If Not blnFound Then
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "NOT EXIST IN TPT"
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 3
+    End If
+    End If
+
+End Function
+Function check_in_out(docmiscwk As Excel.Workbook, in_put As String, out_put As String, LastRow As String, ByVal i As Integer)
+
+    If docmiscwk.Sheets("Mapping").Range("P" & i) = "WriteRte" Then
+        If docmiscwk.Sheets("Mapping").Range("Q" & i) = "-" Then
+            out_put = docmiscwk.Sheets("Mapping").Range("B" & i) + "_RTE"
+            in_put = docmiscwk.Sheets("Mapping").Range("B" & i)
+            docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+            docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+        Else
+            
+            out_put = docmiscwk.Sheets("Mapping").Range("B" & i) + "_RTE"
+            in_put = docmiscwk.Sheets("Mapping").Range("Q" & i)
+            docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+            docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+            
+        End If
+    ElseIf docmiscwk.Sheets("Mapping").Range("P" & i) = "ReadRte" Then
+        If docmiscwk.Sheets("Mapping").Range("Q" & i) = "-" Then
+            out_put = docmiscwk.Sheets("Mapping").Range("B" & i)
+            in_put = docmiscwk.Sheets("Mapping").Range("B" & i) + "_RTE"
+            docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+            docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+        Else
+            out_put = docmiscwk.Sheets("Mapping").Range("Q" & i)
+            in_put = docmiscwk.Sheets("Mapping").Range("B" & i) + "_RTE"
+            docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+            docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+        End If
+    ElseIf docmiscwk.Sheets("Mapping").Range("P" & i) = "Output" Then
+        out_put = docmiscwk.Sheets("Mapping").Range("B" & i)
+        in_put = docmiscwk.Sheets("Mapping").Range("Q" & i)
+        docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+        docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+
+    ElseIf docmiscwk.Sheets("Mapping").Range("P" & i) = "Input" Then
+        out_put = docmiscwk.Sheets("Mapping").Range("Q" & i)
+        in_put = docmiscwk.Sheets("Mapping").Range("B" & i)
+        docmiscwk.Sheets("Mapping").Range("AP" & i) = in_put
+        docmiscwk.Sheets("Mapping").Range("AQ" & i) = out_put
+    End If
+
+End Function
+Function check_in_tpt_schedule(in_put As String, ByVal tpt_schedule As String, docmiscwk As Excel.Workbook, ByVal i As Integer)
+    
+    strFileName = tpt_schedule
+    strSearch = ""
+    
+    Dim strLine As String
+    Dim f As Integer
+    Dim lngLine As Long
+    Dim blnFound As Boolean
+    Dim vData As Variant
+    Dim lCurLine As Long
+    
+    f = FreeFile
+    lCurLine = 1
+    Open strFileName For Input As #f
+    Do While Not EOF(f)
+        lngLine = lngLine + 1
+        Line Input #f, strLine
+        
+        If strLine Like "*" & vbLf & "*" Then
+            vData = Split(strLine, vbLf)
+        End If
+        
+        If UBound(vData) > 0 Then
+            For j = 0 To UBound(vData)
+                If InStr(1, vData(j), strSearch, vbBinaryCompare) > 0 Then
+    
+                    blnFound = True
+                    Line = j
+        
+                    Exit Do
+                End If
+            Next j
+            lCurLine = lCurLine + UBound(vData)
+        Else
+        ' in special case
+            If InStr(1, strLine, strSearch, vbBinaryCompare) > 0 Then
+                    docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT SCHEDULE " & lCurLine
+                    docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+                    blnFound = True
+                    Exit Do
+                End If
+            lCurLine = lCurLine + 1
+        End If
+    Loop
+    Close #f
+    
+    If InStr(1, vData(Line + 1), strSearch_in, vbBinaryCompare) > 0 Then
+    
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "EXIST IN TPT SCHEDULE "
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 4
+        docmiscwk.Sheets("Mapping").Range("AS" & i) = vData(Line)
+        docmiscwk.Sheets("Mapping").Range("AT" & i) = vData(Line + 2)
+                    
+    End If
+     
+    If Not blnFound Then
+        docmiscwk.Sheets("Mapping").Range("AR" & i) = "NOT EXIST IN TPT"
+        docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 3
+    End If
+
+End Function
+Private Sub stubs_Click()
+    Dim temp, sedgepath, pverpath, rtepath, rtelibpath, toolpath, winuser, documentpath, rtehpath, stubspath, FC_name As String
+    Dim wsh As Object
+    Dim MyFileSysObj As Object
+    winuser = Environ("UserName")
+    documentpath = "C:\Users\" & winuser & "\Documents"
+    If FolderExists(documentpath) = True Then
+    Else
+        MkDir (documentpath)
+    End If
+    toolpath = Application.ActiveWorkbook.path
+
+    Set MyFileSysObj = CreateObject("scripting.filesystemobject")
+    Set wsh = VBA.CreateObject("WScript.Shell")
+    
+    pverpath = TextBox4.Value
+    sedgepath = TextBox2.Value + "\"
+    FC_name = TextBox2.Value
+    '===============
+            FC_name = Right(FC_name, Len(FC_name) - InStrRev(FC_name, "\"))
+            If InStrRev(FC_name, "wSPSA") <> 0 Then
+                FC_name = Left(FC_name, InStrRev(FC_name, "wSPSA") + 4)
+            ElseIf InStrRev(FC_name, "wSLyr") <> 0 Then 'SwSAPSA_CSwSLyr
+                FC_name = Left(FC_name, InStrRev(FC_name, "wSLyr") + 4)
+            ElseIf InStrRev(FC_name, "PSA") <> 0 Then
+                FC_name = Left(FC_name, InStrRev(FC_name, "PSA") + 2)
+            End If
+            'fctype = Right(FC_name, Len(FC_name) - InStrRev(FC_name, "_"))
+    '===============
+    
+    If pverpath = "" Then
+        MsgBox "Please choose P-Ver path first", vbCritical
+        Exit Sub
+    End If
+    If Len(pverpath) > 120 Then
+        MsgBox "Please choose Pver path < 120 character, current path is " & Len(pverpath) & " characters", vbCritical
+        Exit Sub
+    End If
+    If FolderExists(pverpath) = True Then
+    Else
+        MsgBox "Pver folder not found !", vbCritical
+       Exit Sub
+    End If
+    If sedgepath = "\" Then
+        MsgBox "Please choose SEDGE path first", vbCritical
+        Exit Sub
+    End If
+    If Len(sedgepath) > 120 Then
+        MsgBox "Please choose SEDGE path < 120 character, current path is " & Len(sedgepath) & " characters", vbCritical
+        Exit Sub
+    End If
+    If FolderExists(sedgepath) = True Then
+    Else
+        MsgBox "SEDGE folder not found !", vbCritical
+       Exit Sub
+    End If
+    
+    rtepath = pverpath + "\_gen\swb\filegroup\src_files\rtegen\Rte.c"
+    rtelibpath = pverpath + "\_gen\swb\filegroup\src_files\rtegen\Rte_Lib.c"
+    stubspath = sedgepath + "_stubs\sedge_stubs.c"
+    rtehpath = sedgepath + "\includes\inc\Rte_" + FC_name + ".h"
+
+    'MyFileSysObj.CopyFile rtepath, sedgepath, True
+    'MyFileSysObj.CopyFile rtelibpath, sedgepath, True
+
+    'MyFileSysObj.CopyFile toolpath + "\data\*SEDGE_stubs_V1.1_Console.exe", sedgepath, True
+    'MyFileSysObj.CopyFile toolpath + "\data\*SEDGE_stubs_V1.1_Console.bat", sedgepath, True
+    'Application.Wait (Now + TimeValue("0:00:1"))
+    
+    MyFileSysObj.CopyFile rtepath, documentpath + "\", True
+    MyFileSysObj.CopyFile rtelibpath, documentpath + "\", True
+    MyFileSysObj.CopyFile stubspath, documentpath + "\", True
+    MyFileSysObj.CopyFile rtehpath, documentpath + "\", True
+    
+    'MyFileSysObj.CopyFile toolpath + "\data\*SEDGE_stubs_V1.1_Console.exe", sedgepath, True
+    'Application.Wait (Now + TimeValue("0:00:1"))
+    
+    wsh.Run toolpath + "\data\SEDGE_stubs_V1.3_Console.exe", vbNormalFocus, True
+    Application.Wait (Now + TimeValue("0:00:1"))
+    
+    MyFileSysObj.CopyFile documentpath + "\sedge_stubs.c", sedgepath + "_stubs\", True
+    MyFileSysObj.CopyFile documentpath + "\*.h", sedgepath + "\includes\inc\", True
+    
+    MyFileSysObj.DeleteFile documentpath & "\*.c", True
+    MyFileSysObj.DeleteFile documentpath & "\*.h", True
+    
+    'MyFileSysObj.DeleteFile sedgepath & "SEDGE_stubs_V1.1_Console.bat", True
+    'MyFileSysObj.DeleteFile sedgepath & "SEDGE_stubs_V1.1_Console.exe", True
+    
+    MsgBox "Done! Pls check sedge_stubs.c & Rte_FC.h in SEDGE folder", vbInformation
+    
+End Sub
+Public Sub Traceability_Click()
+    Dim docmisc, tpt As String
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    ' loop to take file
+    lastrow_tool = Cells(Rows.Count, "D").End(xlUp).Row
+     
+    'For k = 2 To lastrow_tool
+        ' tpt testcase
+        ' select tpt
+        'MsgBox "input tpt file"
+        'tpt = SelecFolder
+        'tpt = TextBox2.Value
+        
+        docmisc = TextBox1.Value
+        If Len(docmisc) > 120 Then
+            MsgBox "Please choose DATA folder path < 120 character, current path is " & Len(docmisc) & " characters", vbCritical
+            Exit Sub
+        End If
+        If FolderExists(docmisc + "\") = True Then
+        Else
+            MsgBox "DATA folder not found !", vbCritical
+            Exit Sub
+        End If
+        
+        
+        tpt = TextBox2.Value
+        If Len(tpt) > 120 Then
+            MsgBox "Please choose SEDGE folder path < 120 character, current path is " & Len(tpt) & " characters", vbCritical
+            Exit Sub
+        End If
+        If FolderExists(tpt) = True Then
+        Else
+            MsgBox "SEDGE folder not found !", vbCritical
+            Exit Sub
+        End If
+
+        fcname = Right(tpt, Len(tpt) - InStrRev(tpt, "\"))
+        fcname = LCase(fcname)
+        If InStrRev(fcname, "wspsa") <> 0 Then
+            fcname = Left(fcname, InStrRev(fcname, "wspsa") + 4)
+        ElseIf InStrRev(fcname, "wslyr") <> 0 Then 'SwSAPSA_CSwSLyr
+            fcname = Left(fcname, InStrRev(fcname, "wslyr") + 4)
+        End If
+        
+        fctype = Right(fcname, Len(fcname) - InStrRev(fcname, "_"))
+
+        If (fctype = "swslyr") Then
+            ''
+        ElseIf (fctype = "swspsa") Then
+            ''
+        Else
+            MsgBox "SEDGE source path isn't SIMPLE FC, please manual Traceability", vbCritical
+        Exit Sub
+        End If
+
+        tpt = Dir(tpt + "\*.tpt")
+        If (tpt = "") Then
+            MsgBox "TPT file not found in SEDGE source path - Please Check", vbCritical
+            Exit Sub
+        End If
+        
+        docmisc = Dir(docmisc + "\*.xls*")
+        If (docmisc = "") Then
+            MsgBox "DOCMISC file not found in DATA Folder - Please check and try again", vbCritical
+            Exit Sub
+        End If
+        
+        docmisc = TextBox1.Value + "\" + docmisc
+        tpt = TextBox2.Value + "\" + tpt
+
+
+        ' select docmisc
+        'MsgBox "input docmic file"
+        'docmisc = SelecFolder
+        'docmisc = TextBox1.Value
+        Dim docmiscwk As Excel.Workbook
+        Dim in_put As String
+        Dim out_put As String
+        Dim lastrow_docmisc As String
+        Set docmiscwk = Excel.Workbooks.Open(docmisc)
+        MacrosEnabled = True
+        lastrow_docmisc = docmiscwk.Sheets("Mapping").Cells(docmiscwk.Sheets("Mapping").Rows.Count, "B").End(xlUp).Row
+        ' MsgBox lastrow_docmisc
+        For i = 3 To lastrow_docmisc
+            ' check remove
+            If docmiscwk.Sheets("Mapping").Range("A" & i) = "Remove" Then
+                docmiscwk.Sheets("Mapping").Range("AR" & i) = "REMOVED"
+                docmiscwk.Sheets("Mapping").Range("AR" & i).Interior.ColorIndex = 37
+                docmiscwk.Sheets("Mapping").Range("AP" & i) = "REMOVED"
+                docmiscwk.Sheets("Mapping").Range("AP" & i).Interior.ColorIndex = 37
+                docmiscwk.Sheets("Mapping").Range("AQ" & i) = "REMOVED"
+                docmiscwk.Sheets("Mapping").Range("AQ" & i).Interior.ColorIndex = 37
+            Else
+                ' check in out
+                check_in_out docmiscwk, in_put, out_put, lastrow_docmisc, i
+                
+                If in_put Like "*_C" Then
+                    ' check var in tpt file calibration
+                    check_in_tpt_C in_put, out_put, tpt, docmiscwk, i
+                Else
+                    ' check var in tpt file
+                    check_in_tpt in_put, out_put, tpt, docmiscwk, i
+                End If
+            End If
+        Next i
+        
+        docmiscwk.Sheets("Mapping").Columns("A:AV").AutoFit
+        docmiscwk.Sheets("Mapping").Columns("C:O").Hidden = True
+        docmiscwk.Sheets("Mapping").Columns("R:AL").Hidden = True
+        docmiscwk.Sheets("Mapping").Columns("AN:AO").Hidden = True
+        docmiscwk.Save
+        docmiscwk.Close
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    'Next k
+    
+    'docmisc = TextBox1.Value
+    docmisc = Dir(TextBox1.Value + "\*.xls*")
+    
+    Name (TextBox1.Value + "\" + docmisc) As TextBox1.Value + "\" + fcname + "_Traceability_Tool.xls"
+    
+    MsgBox "Tracebility Done - Please check file again before Arrange", vbInformation
+    
+End Sub
+Function Change_mapping(outputpath As String)
+    Dim docmisc, docname, lastrow_docmisc As String
+    Dim docmiscwk As Excel.Workbook
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+        docname = Dir(outputpath + "*.xls*")
+        If (docname = "") Then
+            Exit Function
+        End If
+        
+        docmisc = outputpath + docname
+
+        Set docmiscwk = Excel.Workbooks.Open(docmisc)
+        MacrosEnabled = True
+        lastrow_docmisc = docmiscwk.Sheets("Mapping").Cells(docmiscwk.Sheets("Mapping").Rows.Count, "B").End(xlUp).Row
+        
+    docmiscwk.Sheets("Mapping").Range("AR3:AR" & lastrow_docmisc).Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+    docmiscwk.Sheets("Mapping").Range("AR3:AR" & lastrow_docmisc).Select
+    docmiscwk.Sheets("Mapping").Range("AR3:AR" & lastrow_docmisc).Formula = "=IF(COUNTIF(B3:B2001,B3)>1,B3&""xxx""&COUNTIF(B:B,B3)-COUNTIF(B4:$B$2000,B3),B3)"
+    
+    Selection.AutoFill Destination:=docmiscwk.Sheets("Mapping").Range("AR3:AR" & (lastrow_docmisc + 1))
+    docmiscwk.Sheets("Mapping").Range("AR3:AR" & lastrow_docmisc).Select
+    Selection.Copy
+    docmiscwk.Sheets("Mapping").Range("B3:B" & lastrow_docmisc).Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks:=False, Transpose:=False
+    docmiscwk.Sheets("Mapping").Columns("AR:AR").Select
+    Application.CutCopyMode = False
+    Selection.Delete Shift:=xlToLeft
+    Application.ScreenUpdating = False
+    docmiscwk.Close True, outputpath + "TPT_" + docname
+    Application.ScreenUpdating = True
+End Function
+
